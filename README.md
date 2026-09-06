@@ -3,6 +3,7 @@
 # 📊 yourlocalANALYST
 ### Autonomous, Self-Correcting GenAI Data Analyst & Visualization Engine
 
+[![Live Website](https://img.shields.io/badge/Live_Website-Vercel-black?style=for-the-badge&logo=vercel)](https://yourlocalanalyst.vercel.app)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js 16](https://img.shields.io/badge/Next.js_16-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=for-the-badge&logo=duckdb&logoColor=black)](https://duckdb.org/)
@@ -10,6 +11,10 @@
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.6_Flash-blue?style=for-the-badge&logo=google)](https://aistudio.google.com/)
 [![Plotly](https://img.shields.io/badge/Plotly-Interactive_Charts-3F4F75?style=for-the-badge&logo=plotly)](https://plotly.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+<p align="center">
+  🌐 <b>Live Web App:</b> <a href="https://yourlocalanalyst.vercel.app">yourlocalanalyst.vercel.app</a>
+</p>
 
 <p align="center">
   <b>Upload your raw CSVs. Ask questions in plain English. Watch your agent plan, write SQL, self-heal errors, and generate executive briefings with interactive charts.</b>
