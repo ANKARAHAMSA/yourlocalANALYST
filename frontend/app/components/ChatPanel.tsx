@@ -54,11 +54,11 @@ export default function ReportFeed({ reports, runningReport }: ReportFeedProps) 
                     <span className="text-slate-600">·</span>
                     <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
                       <CheckCircle className="w-3 h-3" />
-                      DETERMINISTIC EXECUTION
+                      VERIFIED QUERY
                     </span>
                     {report.attempts && report.attempts > 1 && (
-                      <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
-                        SELF-HEALED ({report.attempts} ATTEMPTS)
+                      <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                        RESOLVED ON RETRY
                       </span>
                     )}
                   </div>
@@ -76,7 +76,7 @@ export default function ReportFeed({ reports, runningReport }: ReportFeedProps) 
                   }`}
                 >
                   <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>SYNTHESIS & VISUALS</span>
+                  <span>CHARTS & FINDINGS</span>
                 </button>
 
                 {report.code && (
@@ -200,7 +200,7 @@ export default function ReportFeed({ reports, runningReport }: ReportFeedProps) 
               </h3>
               <p className="text-[10px] font-mono text-cyan-400 flex items-center gap-1.5 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-                RUNNING QUANTITATIVE PIPELINE...
+                EXECUTING QUERY IN DUCKDB...
               </p>
             </div>
           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Database, UploadCloud, FileSpreadsheet, Sparkles, ChevronRight, CheckCircle2, Columns } from 'lucide-react';
+import { Database, UploadCloud, FileSpreadsheet, ChevronRight, CheckCircle2, Columns } from 'lucide-react';
 import type { UploadResult } from '../types';
 
 interface FileUploaderProps {
@@ -32,7 +32,7 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || 'Failed to ingest dataset');
+        throw new Error(err.detail || 'Failed to load dataset');
       }
       const data: UploadResult = await res.json();
       setUploadedData(data);
@@ -56,16 +56,16 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
       <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
               <Database className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
               <h2 className="text-xs font-semibold tracking-wider uppercase text-slate-100 font-mono">
-                DATA ENGINE KERNEL
+                DATASET MANAGER
               </h2>
               <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                DUCKDB IN-MEMORY · ISOLATED
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                IN-MEMORY SESSION · ZERO RETENTION
               </p>
             </div>
           </div>
@@ -75,6 +75,7 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Drag & Drop Ingestion Port */}
         <div
+          id="tour-upload"
           onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={onDrop}
@@ -90,17 +91,17 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
               <UploadCloud className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
             </div>
             <p className="text-xs font-semibold text-slate-200 tracking-wide">
-              {isUploading ? 'Ingesting & Profiling Schema...' : 'Ingest Tabular Data (CSV)'}
+              {isUploading ? 'Loading & Profiling Dataset...' : 'Import Business Data (CSV)'}
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
               Drag & drop files or browse directory
             </p>
             <div className="mt-3 flex items-center gap-2">
               <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">
-                MULTI-TABLE JOIN READY
+                MULTI-FILE RELATIONAL
               </span>
               <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                ZERO DISK RETENTION
+                LOCAL RAM ONLY
               </span>
             </div>
           </div>
@@ -121,97 +122,108 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
           </div>
         )}
 
-        {/* Profiled Data Dictionary */}
-        {uploadedData && (
-          <div className="space-y-4 animate-in fade-in duration-300">
-            {/* Active Relational Tables */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
-                  Registered Data Schemas
-                </span>
-                <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  {uploadedData.tables.length} TABLE{uploadedData.tables.length > 1 ? 'S' : ''}
-                </span>
+        {/* Profiled Data Dictionary & Presets */}
+        <div id="tour-schema">
+          {uploadedData ? (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              {/* Active Relational Tables */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+                    Detected Schemas
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    {uploadedData.tables.length} TABLE{uploadedData.tables.length > 1 ? 'S' : ''}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {uploadedData.tables.map((table) => {
+                    const cols = uploadedData.schemas[table] || [];
+                    return (
+                      <div
+                        key={table}
+                        className="p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/15 transition-all"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-cyan-400" />
+                          <span className="font-mono text-xs font-bold text-slate-200">{table}</span>
+                          <span className="text-[10px] font-mono text-slate-400 ml-auto">
+                            {cols.length} cols
+                          </span>
+                        </div>
+
+                        {/* Column Pill List */}
+                        <div className="flex flex-wrap gap-1">
+                          {cols.slice(0, 8).map((c) => (
+                            <span
+                              key={c.column}
+                              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-300 border border-white/5"
+                              title={`${c.column} (${c.type})`}
+                            >
+                              {c.column}
+                            </span>
+                          ))}
+                          {cols.length > 8 && (
+                            <span className="text-[10px] font-mono text-slate-400 px-1 py-0.5">
+                              +{cols.length - 8} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                {uploadedData.tables.map((table) => {
-                  const cols = uploadedData.schemas[table] || [];
-                  return (
-                    <div
-                      key={table}
-                      className="p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/15 transition-all"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <FileSpreadsheet className="w-3.5 h-3.5 text-cyan-400" />
-                        <span className="font-mono text-xs font-bold text-slate-200">{table}</span>
-                        <span className="text-[10px] font-mono text-slate-400 ml-auto">
-                          {cols.length} cols
-                        </span>
-                      </div>
+              {/* Dataset Profile & Summary */}
+              <div className="p-3.5 rounded-xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Columns className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-200">
+                    Dataset Summary
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans line-clamp-4">
+                  {uploadedData.eda_summary}
+                </p>
+              </div>
 
-                      {/* Column Pill List */}
-                      <div className="flex flex-wrap gap-1">
-                        {cols.slice(0, 8).map((c) => (
-                          <span
-                            key={c.column}
-                            className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-300 border border-white/5"
-                            title={`${c.column} (${c.type})`}
-                          >
-                            {c.column}
-                          </span>
-                        ))}
-                        {cols.length > 8 && (
-                          <span className="text-[10px] font-mono text-slate-400 px-1 py-0.5">
-                            +{cols.length - 8} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Recommended Preset Queries */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+                    Preset Analytical Queries
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {uploadedData.suggested_questions.map((q, i) => (
+                    <button
+                      key={i}
+                      onClick={() => onSelectQuestion(q)}
+                      className="w-full text-left group p-2.5 rounded-xl bg-white/[0.02] hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all duration-200 flex items-start gap-2"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" />
+                      <span className="text-xs text-slate-300 group-hover:text-slate-100 font-sans leading-snug">
+                        {q}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-
-            {/* Automated Executive Baseline */}
-            <div className="p-3.5 rounded-xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Columns className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-200">
-                  Automated Dataset Profile
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed font-sans line-clamp-4">
-                {uploadedData.eda_summary}
+          ) : (
+            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5">
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+                Schema Dictionary & Presets
+              </span>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Upload a CSV above to inspect detected column types, sample distributions, and recommended analytical queries.
               </p>
             </div>
-
-            {/* High-Value Analytical Queries (Preset Directives) */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-2.5">
-                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
-                  Recommended Analytical Angles
-                </span>
-              </div>
-              <div className="space-y-1.5">
-                {uploadedData.suggested_questions.map((q, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onSelectQuestion(q)}
-                    className="w-full text-left group p-2.5 rounded-xl bg-white/[0.02] hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all duration-200 flex items-start gap-2"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" />
-                    <span className="text-xs text-slate-300 group-hover:text-slate-100 font-sans leading-snug">
-                      {q}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
