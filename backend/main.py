@@ -28,13 +28,13 @@ async def lifespan(app: FastAPI):
         )
     genai.configure(api_key=api_key)
     gemini_model = genai.GenerativeModel(
-        model_name="gemini-3.6-flash",
+        model_name="gemini-flash-latest",
         generation_config=genai.GenerationConfig(
             temperature=0.1,       # Low temp for deterministic code generation
             max_output_tokens=4096,
         ),
     )
-    print("✅ Gemini model initialized: gemini-3.6-flash")
+    print("✅ Gemini model initialized: gemini-flash-latest")
     yield
     print("🛑 Shutting down AI Data Analyst backend.")
 

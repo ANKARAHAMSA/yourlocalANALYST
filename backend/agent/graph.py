@@ -64,6 +64,27 @@ def _parse_llm_json(text: str) -> dict:
     return json.loads(text.strip())
 
 
+import time
+
+def _generate_with_retry(model, prompt: str, on_step=None, max_attempts: int = 4):
+    """
+    Execute Gemini model generate_content with exponential backoff on 429 rate limits.
+    """
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return model.generate_content(prompt)
+        except Exception as e:
+            err_str = str(e)
+            is_rate_limit = "429" in err_str or "quota" in err_str.lower() or "resource" in err_str.lower()
+            if is_rate_limit and attempt < max_attempts:
+                wait_sec = attempt * 3
+                if on_step:
+                    on_step(f"⏳ Rate limit buffer active — pausing {wait_sec}s for API quota...")
+                time.sleep(wait_sec)
+            else:
+                raise e
+
+
 # ──────────────────────────────────────────────
 # Node 1: Planner — generates code from question
 # ──────────────────────────────────────────────
@@ -75,8 +96,10 @@ def planner_node(state: AgentState) -> AgentState:
     prompt = PLANNER_SYSTEM_PROMPT.format(schema=schema_str)
 
     model = state["gemini_model"]
-    response = model.generate_content(
-        f"{prompt}\n\n## User Question\n{state['question']}"
+    response = _generate_with_retry(
+        model,
+        f"{prompt}\n\n## User Question\n{state['question']}",
+        on_step=state.get("on_step"),
     )
 
     parsed = _parse_llm_json(response.text)
@@ -140,7 +163,7 @@ def reflector_node(state: AgentState) -> AgentState:
     )
 
     model = state["gemini_model"]
-    response = model.generate_content(prompt)
+    response = _generate_with_retry(model, prompt, on_step=state.get("on_step"))
     parsed = _parse_llm_json(response.text)
 
     return {
@@ -205,7 +228,7 @@ def insight_node(state: AgentState) -> AgentState:
         )
         try:
             model = state["gemini_model"]
-            response = model.generate_content(prompt)
+            response = _generate_with_retry(model, prompt, on_step=state.get("on_step"))
             parsed = _parse_llm_json(response.text)
             narrative = parsed.get("narrative", "")
             insights = parsed.get("insights", [])
