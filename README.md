@@ -167,25 +167,6 @@ Open **`http://localhost:3000`** in your browser!
 
 ---
 
-## ☁️ Deployment
-
-### Deploy Frontend to Vercel (1 Click)
-1. Go to [vercel.com/new](https://vercel.com/new) and log in with your GitHub account.
-2. Select your repository: **`ANKARAHAMSA/yourlocalANALYST`**.
-3. Set project name: **`yourlocalANALYST`**.
-4. The root `vercel.json` automatically handles building the Next.js frontend!
-5. (Optional) Under **Environment Variables**, add `NEXT_PUBLIC_API_URL` pointing to your backend.
-6. Click **Deploy**! 🚀
-
-### Deploy Backend (Docker / Render / Railway)
-The backend comes with a production `backend/Dockerfile`. You can deploy it to [Render](https://render.com) or [Railway](https://railway.app) for free:
-1. Connect this repo to Render / Railway as a **Web Service**.
-2. Set Root Directory: `backend`.
-3. Add Environment Variable: `GEMINI_API_KEY=your_key`.
-4. Render/Railway will build the Docker container and provide a live public HTTPS URL!
-
----
-
 ## 📁 Repository Structure
 
 ```
