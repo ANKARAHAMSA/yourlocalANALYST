@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0d0d1a;
-  --foreground: #e0e0e0;
+  --background: #08090e;
+  --surface: #0f111a;
+  --surface-raised: #151824;
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --accent-emerald: #00d2b4;
+  --accent-gold: #d4af37;
+  --text-primary: #f1f5f9;
+  --text-muted: #94a3b8;
 }
 
 * {
@@ -13,41 +19,68 @@ html,
 body {
   height: 100%;
   overflow: hidden;
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.01em;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+/* Analytical Grid & Atmospheric Ambient Background */
+.analyst-mesh {
+  background-color: #08090e;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(0, 210, 180, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.8) 0px, transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 32px 32px, 32px 32px;
 }
 
-/* Custom scrollbar */
+/* Glassmorphism Panels */
+.glass-panel {
+  background: rgba(15, 17, 26, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel-subtle {
+  background: rgba(21, 24, 36, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Precision Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0d0d1a;
+  background: rgba(8, 9, 14, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a4a;
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a6a;
+  background: rgba(255, 255, 255, 0.3);
 }
 
-/* Textarea auto-resize */
-textarea {
-  field-sizing: content;
+/* Monospace Numbers Alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Plotly overrides for dark theme */
+/* Plotly overrides for luxurious dark mode */
 .js-plotly-plot .plotly .modebar {
   background: transparent !important;
 }
 .js-plotly-plot .plotly .modebar-btn path {
-  fill: #6b7280 !important;
+  fill: #64748b !important;
 }
 .js-plotly-plot .plotly .modebar-btn:hover path {
-  fill: #a78bfa !important;
+  fill: #00d2b4 !important;
 }

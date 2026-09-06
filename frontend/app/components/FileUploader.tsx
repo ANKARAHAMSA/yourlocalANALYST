@@ -1,215 +1,218 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
-
-interface SchemaColumn {
-  column: string;
-  type: string;
-}
-
-interface UploadResult {
-  session_id: string;
-  tables: string[];
-  schemas: Record<string, SchemaColumn[]>;
-  sample_rows: Record<string, Record<string, unknown>[]>;
-  eda_summary: string;
-  suggested_questions: string[];
-}
+import { useState, useCallback } from 'react';
+import { Database, UploadCloud, FileSpreadsheet, Sparkles, ChevronRight, CheckCircle2, Columns } from 'lucide-react';
+import type { UploadResult } from '../types';
 
 interface FileUploaderProps {
-  onUploadSuccess: (result: UploadResult) => void;
-  onQuestionSelect: (q: string) => void;
+  onUploadSuccess: (data: UploadResult) => void;
+  onSelectQuestion: (question: string) => void;
 }
 
-export default function FileUploader({ onUploadSuccess, onQuestionSelect }: FileUploaderProps) {
+export default function FileUploader({ onUploadSuccess, onSelectQuestion }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [files, setFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedData, setUploadedData] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback(() => setIsDragging(false), []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const dropped = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.csv'));
-    setFiles(prev => [...prev, ...dropped]);
-  }, []);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selected = Array.from(e.target.files).filter(f => f.name.endsWith('.csv'));
-      setFiles(prev => [...prev, ...selected]);
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async (files: FileList | File[]) => {
     if (!files.length) return;
-    setUploading(true);
+    setIsUploading(true);
     setError(null);
 
     const formData = new FormData();
-    files.forEach(f => formData.append('files', f));
+    Array.from(files).forEach((f) => formData.append('files', f));
 
     try {
       const res = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
         body: formData,
       });
-
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || 'Upload failed');
+        throw new Error(err.detail || 'Failed to ingest dataset');
       }
-
       const data: UploadResult = await res.json();
-      setUploadResult(data);
+      setUploadedData(data);
       onUploadSuccess(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
-      setUploading(false);
+      setIsUploading(false);
     }
+  }, [API_URL, onUploadSuccess]);
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files) handleUpload(e.dataTransfer.files);
   };
 
-  if (uploadResult) {
-    return (
-      <div className="space-y-4">
-        {/* Success Banner */}
-        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-xl p-3">
-          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-          <div>
-            <p className="text-green-400 font-medium text-sm">Data loaded successfully</p>
-            <p className="text-gray-400 text-xs">{uploadResult.tables.join(', ')}</p>
+  return (
+    <div className="flex flex-col h-full overflow-hidden text-slate-200">
+      {/* Telemetry Header */}
+      <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+              <Database className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="text-xs font-semibold tracking-wider uppercase text-slate-100 font-mono">
+                DATA ENGINE KERNEL
+              </h2>
+              <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                DUCKDB IN-MEMORY · ISOLATED
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* EDA Summary */}
-        <div className="bg-[#1e1e3a] rounded-xl p-4 border border-[#2a2a4a]">
-          <h3 className="text-purple-400 font-semibold text-sm mb-2">📊 Dataset Summary</h3>
-          <p className="text-gray-300 text-sm leading-relaxed">{uploadResult.eda_summary}</p>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Drag & Drop Ingestion Port */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={onDrop}
+          onClick={() => document.getElementById('dataset-input')?.click()}
+          className={`relative group rounded-2xl p-6 text-center border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${
+            isDragging
+              ? 'border-emerald-400 bg-emerald-500/10 scale-[0.99]'
+              : 'border-white/10 hover:border-emerald-500/40 bg-white/[0.02] hover:bg-white/[0.04]'
+          }`}
+        >
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3 group-hover:border-emerald-500/40 group-hover:scale-110 transition-all duration-300">
+              <UploadCloud className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+            </div>
+            <p className="text-xs font-semibold text-slate-200 tracking-wide">
+              {isUploading ? 'Ingesting & Profiling Schema...' : 'Ingest Tabular Data (CSV)'}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Drag & drop files or browse directory
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-400 border border-white/10">
+                MULTI-TABLE JOIN READY
+              </span>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                ZERO DISK RETENTION
+              </span>
+            </div>
+          </div>
+
+          <input
+            id="dataset-input"
+            type="file"
+            accept=".csv"
+            multiple
+            className="hidden"
+            onChange={(e) => e.target.files && handleUpload(e.target.files)}
+          />
         </div>
 
-        {/* Schema Preview */}
-        <div className="bg-[#1e1e3a] rounded-xl p-4 border border-[#2a2a4a]">
-          <h3 className="text-purple-400 font-semibold text-sm mb-3">📋 Schema</h3>
-          {Object.entries(uploadResult.schemas).map(([table, cols]) => (
-            <div key={table} className="mb-3">
-              <p className="text-white font-mono text-xs mb-1 text-blue-400">{table}</p>
-              <div className="grid grid-cols-2 gap-1">
-                {cols.map(col => (
-                  <div key={col.column} className="flex items-center gap-1.5 bg-[#12122a] rounded px-2 py-1">
-                    <span className="text-gray-300 text-xs truncate">{col.column}</span>
-                    <span className="text-purple-400 text-xs ml-auto">{col.type}</span>
-                  </div>
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-mono">
+            {error}
+          </div>
+        )}
+
+        {/* Profiled Data Dictionary */}
+        {uploadedData && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Active Relational Tables */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+                  Registered Data Schemas
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {uploadedData.tables.length} TABLE{uploadedData.tables.length > 1 ? 'S' : ''}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {uploadedData.tables.map((table) => {
+                  const cols = uploadedData.schemas[table] || [];
+                  return (
+                    <div
+                      key={table}
+                      className="p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/15 transition-all"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-cyan-400" />
+                        <span className="font-mono text-xs font-bold text-slate-200">{table}</span>
+                        <span className="text-[10px] font-mono text-slate-400 ml-auto">
+                          {cols.length} cols
+                        </span>
+                      </div>
+
+                      {/* Column Pill List */}
+                      <div className="flex flex-wrap gap-1">
+                        {cols.slice(0, 8).map((c) => (
+                          <span
+                            key={c.column}
+                            className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-300 border border-white/5"
+                            title={`${c.column} (${c.type})`}
+                          >
+                            {c.column}
+                          </span>
+                        ))}
+                        {cols.length > 8 && (
+                          <span className="text-[10px] font-mono text-slate-400 px-1 py-0.5">
+                            +{cols.length - 8} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Automated Executive Baseline */}
+            <div className="p-3.5 rounded-xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/10">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Columns className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-200">
+                  Automated Dataset Profile
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-sans line-clamp-4">
+                {uploadedData.eda_summary}
+              </p>
+            </div>
+
+            {/* High-Value Analytical Queries (Preset Directives) */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+                  Recommended Analytical Angles
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {uploadedData.suggested_questions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onSelectQuestion(q)}
+                    className="w-full text-left group p-2.5 rounded-xl bg-white/[0.02] hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all duration-200 flex items-start gap-2"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" />
+                    <span className="text-xs text-slate-300 group-hover:text-slate-100 font-sans leading-snug">
+                      {q}
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Suggested Questions */}
-        <div className="bg-[#1e1e3a] rounded-xl p-4 border border-[#2a2a4a]">
-          <h3 className="text-purple-400 font-semibold text-sm mb-3">💡 Suggested Questions</h3>
-          <div className="space-y-2">
-            {uploadResult.suggested_questions.map((q, i) => (
-              <button
-                key={i}
-                onClick={() => onQuestionSelect(q)}
-                className="w-full text-left text-xs text-gray-300 bg-[#12122a] hover:bg-purple-600/20 
-                           hover:text-purple-300 border border-[#2a2a4a] hover:border-purple-500/40 
-                           rounded-lg px-3 py-2 transition-all duration-200"
-              >
-                {q}
-              </button>
-            ))}
           </div>
-        </div>
+        )}
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Drop Zone */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer
-          ${isDragging
-            ? 'border-purple-400 bg-purple-500/10'
-            : 'border-[#2a2a4a] hover:border-purple-500/50 bg-[#1a1a2e]'
-          }`}
-        onClick={() => document.getElementById('file-input')?.click()}
-      >
-        <Upload className={`w-10 h-10 mx-auto mb-3 ${isDragging ? 'text-purple-400' : 'text-gray-500'}`} />
-        <p className="text-gray-300 font-medium text-sm">
-          {isDragging ? 'Drop your CSV files here' : 'Drag & drop CSV files here'}
-        </p>
-        <p className="text-gray-500 text-xs mt-1">or click to browse · Multiple files supported</p>
-        <input
-          id="file-input"
-          type="file"
-          accept=".csv"
-          multiple
-          className="hidden"
-          onChange={handleFileChange}
-        />
-      </div>
-
-      {/* File List */}
-      {files.length > 0 && (
-        <div className="space-y-2">
-          {files.map((f, i) => (
-            <div key={i} className="flex items-center gap-2 bg-[#1e1e3a] rounded-lg px-3 py-2 border border-[#2a2a4a]">
-              <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
-              <span className="text-gray-300 text-xs flex-1 truncate">{f.name}</span>
-              <span className="text-gray-500 text-xs">{(f.size / 1024).toFixed(1)} KB</span>
-              <button onClick={() => removeFile(i)} className="text-gray-500 hover:text-red-400 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-
-          <button
-            onClick={handleUpload}
-            disabled={uploading}
-            className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 
-                       text-white font-semibold text-sm rounded-xl transition-all duration-200
-                       disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {uploading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Analyzing dataset...
-              </>
-            ) : (
-              `Upload ${files.length} file${files.length > 1 ? 's' : ''}`
-            )}
-          </button>
-        </div>
-      )}
-
-      {error && (
-        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-          <p className="text-red-400 text-xs">{error}</p>
-        </div>
-      )}
     </div>
   );
 }

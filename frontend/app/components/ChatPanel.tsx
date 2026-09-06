@@ -1,155 +1,223 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { Bot, User, Loader2, RefreshCw, CheckCircle } from 'lucide-react';
-import { Message } from '../types';
-import InsightCard from './InsightCard';
+import { useState } from 'react';
+import { Terminal, BarChart2, Table, Code2, CheckCircle, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
+import type { QueryReport } from '../types';
 import ChartViewer from './ChartViewer';
 import DataTable from './DataTable';
+import InsightCard from './InsightCard';
 
-interface ChatPanelProps {
-  messages: Message[];
-  isLoading: boolean;
+interface ReportFeedProps {
+  reports: QueryReport[];
+  runningReport?: QueryReport | null;
 }
 
-export default function ChatPanel({ messages, isLoading }: ChatPanelProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+export default function ReportFeed({ reports, runningReport }: ReportFeedProps) {
+  const [activeTabs, setActiveTabs] = useState<Record<string, 'overview' | 'sql' | 'data'>>({});
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  const getTab = (id: string) => activeTabs[id] || 'overview';
+  const setTab = (id: string, tab: 'overview' | 'sql' | 'data') => {
+    setActiveTabs((prev) => ({ ...prev, [id]: tab }));
+  };
 
-  if (messages.length === 0 && !isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-center p-8">
-        <div>
-          <div className="w-16 h-16 rounded-2xl bg-purple-600/20 border border-purple-500/30 
-                          flex items-center justify-center mx-auto mb-4">
-            <Bot className="w-8 h-8 text-purple-400" />
-          </div>
-          <h2 className="text-white font-semibold text-lg mb-2">Ready to analyze your data</h2>
-          <p className="text-gray-500 text-sm max-w-sm">
-            Upload a CSV file on the left, then ask anything about your data in plain English.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(id);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-6">
-      {messages.map((msg, idx) => (
-        <div key={idx}>
-          {msg.role === 'user' ? (
-            // User message
-            <div className="flex items-start gap-3 justify-end">
-              <div className="bg-purple-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%]">
-                <p className="text-sm leading-relaxed">{msg.content}</p>
+    <div className="space-y-6 pb-24">
+      {reports.map((report) => {
+        const currentTab = getTab(report.id);
+
+        return (
+          <div
+            key={report.id}
+            className="glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl transition-all duration-300"
+          >
+            {/* Report Header Banner */}
+            <div className="px-6 py-4 border-b border-white/5 bg-gradient-to-r from-white/[0.03] to-transparent flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-mono text-xs font-bold text-slate-200">
+                  SQL
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-100 font-sans tracking-tight">
+                    {report.query}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {report.timestamp}
+                    </span>
+                    <span className="text-slate-600">·</span>
+                    <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      DETERMINISTIC EXECUTION
+                    </span>
+                    {report.attempts && report.attempts > 1 && (
+                      <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
+                        SELF-HEALED ({report.attempts} ATTEMPTS)
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-white" />
+
+              {/* View Switcher Tabs */}
+              <div className="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 font-mono text-xs">
+                <button
+                  onClick={() => setTab(report.id, 'overview')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
+                    currentTab === 'overview'
+                      ? 'bg-white/10 text-white shadow-sm font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <BarChart2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>SYNTHESIS & VISUALS</span>
+                </button>
+
+                {report.code && (
+                  <button
+                    onClick={() => setTab(report.id, 'sql')}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
+                      currentTab === 'sql'
+                        ? 'bg-white/10 text-white shadow-sm font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>SQL AUDIT</span>
+                  </button>
+                )}
+
+                {report.table && (
+                  <button
+                    onClick={() => setTab(report.id, 'data')}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
+                      currentTab === 'data'
+                        ? 'bg-white/10 text-white shadow-sm font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Table className="w-3.5 h-3.5 text-amber-400" />
+                    <span>DATASET</span>
+                  </button>
+                )}
               </div>
             </div>
-          ) : (
-            // Assistant message
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#1e1e3a] border border-purple-500/30 
-                              flex items-center justify-center flex-shrink-0">
-                <Bot className="w-4 h-4 text-purple-400" />
-              </div>
-              <div className="flex-1 space-y-3 min-w-0">
-                {/* Step indicators */}
-                {msg.steps && msg.steps.length > 0 && (
-                  <div className="space-y-1">
-                    {msg.steps.map((step, si) => (
-                      <div key={si} className="flex items-center gap-2 text-xs text-gray-500">
-                        {si === msg.steps!.length - 1 && msg.isStreaming ? (
-                          <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
-                        ) : (
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                        )}
-                        <span className={si === msg.steps!.length - 1 && msg.isStreaming ? 'text-purple-400' : ''}>
-                          {step}
-                        </span>
+
+            {/* Tab Contents */}
+            <div className="p-6">
+              {currentTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* Executive Briefing Text */}
+                  {report.executiveSummary && (
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 leading-relaxed">
+                      <div className="flex items-center gap-2 mb-2 text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold">
+                        <span>EXECUTIVE SUMMARY</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Attempt badge */}
-                {msg.attempts && msg.attempts > 1 && (
-                  <div className="flex items-center gap-1.5 text-xs text-amber-400">
-                    <RefreshCw className="w-3 h-3" />
-                    Self-corrected after {msg.attempts} attempt{msg.attempts > 1 ? 's' : ''}
-                  </div>
-                )}
-
-                {/* Narrative answer */}
-                {msg.content && (
-                  <div className="bg-[#1e1e3a] border border-[#2a2a4a] rounded-xl rounded-tl-sm p-4">
-                    <p className="text-gray-200 text-sm leading-relaxed">{msg.content}</p>
-                  </div>
-                )}
-
-                {/* Generated code */}
-                {msg.code && (
-                  <div className="bg-[#0d1117] border border-[#2a2a4a] rounded-xl overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-[#2a2a4a]">
-                      <span className="text-xs text-gray-500 font-mono uppercase tracking-wider">
-                        {msg.codeLanguage || 'sql'}
-                      </span>
+                      <p className="text-sm text-slate-200 font-sans leading-relaxed">
+                        {report.executiveSummary}
+                      </p>
                     </div>
-                    <pre className="p-4 text-xs text-green-300 font-mono overflow-x-auto whitespace-pre-wrap">
-                      {msg.code}
-                    </pre>
+                  )}
+
+                  {/* Quantitative Findings Cards */}
+                  {report.insights && report.insights.length > 0 && (
+                    <InsightCard insights={report.insights} />
+                  )}
+
+                  {/* Visual Chart */}
+                  {report.chart && (
+                    <ChartViewer chartSpec={report.chart as any} />
+                  )}
+
+                  {/* Quick Data Sample If No Chart */}
+                  {!report.chart && report.table && (
+                    <DataTable columns={report.table.columns} rows={report.table.rows} />
+                  )}
+                </div>
+              )}
+
+              {currentTab === 'sql' && report.code && (
+                <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0A0C14]">
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
+                    <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
+                      <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>DUCKDB SQL DIALECT · IN-MEMORY</span>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(report.code!, report.id)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                    >
+                      {copiedCode === report.id ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-400" />
+                          <span className="text-emerald-400">COPIED</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 text-slate-400" />
+                          <span>COPY SQL</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                )}
+                  <pre className="p-5 font-mono text-xs text-emerald-300 overflow-x-auto leading-relaxed selection:bg-emerald-950">
+                    <code>{report.code}</code>
+                  </pre>
+                </div>
+              )}
 
-                {/* Chart */}
-                {msg.chart && <ChartViewer chartSpec={msg.chart} />}
+              {currentTab === 'data' && report.table && (
+                <DataTable columns={report.table.columns} rows={report.table.rows} />
+              )}
 
-                {/* Data Table */}
-                {msg.table && <DataTable data={msg.table} />}
+              {report.error && (
+                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-mono flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>{report.error}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
 
-                {/* Insights */}
-                {msg.insights && msg.insights.length > 0 && (
-                  <InsightCard insights={msg.insights} />
-                )}
+      {/* Live Pipeline Execution Card */}
+      {runningReport && (
+        <div className="glass-panel rounded-2xl p-6 border border-cyan-500/30 bg-gradient-to-br from-cyan-950/20 to-slate-900/60 shadow-2xl animate-in fade-in">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-100 font-sans">
+                {runningReport.query}
+              </h3>
+              <p className="text-[10px] font-mono text-cyan-400 flex items-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                RUNNING QUANTITATIVE PIPELINE...
+              </p>
+            </div>
+          </div>
 
-                {/* Error */}
-                {msg.error && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-                    <p className="text-red-400 text-xs">{msg.error}</p>
-                  </div>
-                )}
-              </div>
+          {/* Live Step Progress Feed */}
+          {runningReport.steps && runningReport.steps.length > 0 && (
+            <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 font-mono text-xs space-y-2">
+              {runningReport.steps.map((step, sIdx) => (
+                <div key={sIdx} className="flex items-center gap-2 text-slate-300">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                  <span>{step}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
-      ))}
-
-      {/* Loading indicator */}
-      {isLoading && messages[messages.length - 1]?.role === 'user' && (
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#1e1e3a] border border-purple-500/30 
-                          flex items-center justify-center flex-shrink-0">
-            <Bot className="w-4 h-4 text-purple-400" />
-          </div>
-          <div className="flex items-center gap-2 bg-[#1e1e3a] border border-[#2a2a4a] rounded-xl rounded-tl-sm px-4 py-3">
-            <div className="flex gap-1">
-              {[0, 1, 2].map(i => (
-                <div
-                  key={i}
-                  className="w-2 h-2 rounded-full bg-purple-400 animate-bounce"
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
       )}
-
-      <div ref={bottomRef} />
     </div>
   );
 }

@@ -1,8 +1,8 @@
-export interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  steps?: string[];
-  isStreaming?: boolean;
+export interface QueryReport {
+  id: string;
+  timestamp: string;
+  query: string;
+  executiveSummary?: string;
   code?: string;
   codeLanguage?: string;
   chart?: {
@@ -15,7 +15,10 @@ export interface Message {
     rows: Record<string, unknown>[];
   };
   insights?: string[];
+  executionTimeMs?: number;
   attempts?: number;
+  status: 'running' | 'completed' | 'error';
+  steps?: string[];
   error?: string;
 }
 

@@ -1,92 +1,88 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, FileText, FileCode, Loader2 } from 'lucide-react';
-import { Message } from '../types';
+import { FileText, BookOpen, Download, CheckCircle, Loader2 } from 'lucide-react';
+import type { QueryReport } from '../types';
 
 interface ExportBarProps {
   sessionId: string;
-  messages: Message[];
+  reports: QueryReport[];
 }
 
-export default function ExportBar({ sessionId, messages }: ExportBarProps) {
-  const [exportingNotebook, setExportingNotebook] = useState(false);
-  const [exportingPdf, setExportingPdf] = useState(false);
+export default function ExportBar({ sessionId, reports }: ExportBarProps) {
+  const [downloading, setDownloading] = useState<'notebook' | 'pdf' | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-  const buildHistory = () =>
-    messages.map(msg => ({
-      role: msg.role,
-      content: msg.content,
-      code: msg.code,
-      code_language: msg.codeLanguage,
-      answer: msg.role === 'assistant' ? msg.content : undefined,
-      insights: msg.insights,
-    }));
+  if (!reports.some((r) => r.status === 'completed')) return null;
 
-  const handleExport = async (type: 'notebook' | 'pdf') => {
-    const setter = type === 'notebook' ? setExportingNotebook : setExportingPdf;
-    setter(true);
-
+  const handleExport = async (format: 'notebook' | 'pdf') => {
+    setDownloading(format);
     try {
-      const res = await fetch(`${API_URL}/api/export/${type}`, {
+      const history = reports.flatMap((r) => [
+        { role: 'user', content: r.query },
+        {
+          role: 'assistant',
+          answer: r.executiveSummary || '',
+          code: r.code || '',
+          code_language: r.codeLanguage || 'sql',
+          insights: r.insights || [],
+        },
+      ]);
+
+      const res = await fetch(`${API_URL}/api/export/${format}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, history: buildHistory() }),
+        body: JSON.stringify({ session_id: sessionId, history }),
       });
 
-      if (!res.ok) throw new Error('Export failed');
+      if (!res.ok) throw new Error(`Export failed`);
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = type === 'notebook' ? 'ai_data_analysis.ipynb' : 'ai_data_analysis_report.pdf';
+      a.download =
+        format === 'notebook'
+          ? `Executive_Analysis_${sessionId.slice(0, 8)}.ipynb`
+          : `Executive_Report_${sessionId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Export error:', err);
+      console.error(err);
     } finally {
-      setter(false);
+      setDownloading(null);
     }
   };
 
-  if (!sessionId || messages.length < 2) return null;
-
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-t border-[#2a2a4a] bg-[#12122a]">
-      <Download className="w-3.5 h-3.5 text-gray-500" />
-      <span className="text-gray-500 text-xs mr-2">Export:</span>
-
+    <div className="flex items-center gap-2">
       <button
         onClick={() => handleExport('notebook')}
-        disabled={exportingNotebook}
-        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-400 
-                   bg-[#1e1e3a] hover:bg-blue-500/10 border border-[#2a2a4a] hover:border-blue-500/40 
-                   rounded-lg px-3 py-1.5 transition-all duration-200 disabled:opacity-50"
+        disabled={downloading !== null}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all duration-150 disabled:opacity-50"
       >
-        {exportingNotebook ? (
-          <Loader2 className="w-3 h-3 animate-spin" />
+        {downloading === 'notebook' ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
         ) : (
-          <FileCode className="w-3 h-3" />
+          <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
         )}
-        Jupyter Notebook
+        <span>JUPYTER (.IPYNB)</span>
       </button>
 
       <button
         onClick={() => handleExport('pdf')}
-        disabled={exportingPdf}
-        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-400 
-                   bg-[#1e1e3a] hover:bg-red-500/10 border border-[#2a2a4a] hover:border-red-500/40 
-                   rounded-lg px-3 py-1.5 transition-all duration-200 disabled:opacity-50"
+        disabled={downloading !== null}
+        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-mono font-medium text-slate-100 bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-600/40 hover:to-teal-600/40 border border-emerald-500/40 hover:border-emerald-400/60 shadow-lg shadow-emerald-950/20 transition-all duration-150 disabled:opacity-50"
       >
-        {exportingPdf ? (
-          <Loader2 className="w-3 h-3 animate-spin" />
+        {downloading === 'pdf' ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
         ) : (
-          <FileText className="w-3 h-3" />
+          <FileText className="w-3.5 h-3.5 text-emerald-400" />
         )}
-        PDF Report
+        <span>EXECUTIVE PDF</span>
       </button>
     </div>
   );
