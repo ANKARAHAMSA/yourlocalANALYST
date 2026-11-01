@@ -88,7 +88,7 @@ async def analyze(request: AnalyzeRequest):
 
         try:
             while True:
-                item = await asyncio.wait_for(queue.get(), timeout=120)
+                item = await asyncio.wait_for(queue.get(), timeout=180)
 
                 if isinstance(item, Exception):
                     yield f"event: error\ndata: {json.dumps({'error': str(item)})}\n\n"
