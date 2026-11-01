@@ -75,7 +75,7 @@ def _generate_with_retry(model, prompt: str, on_step=None, max_attempts: int = 4
         try:
             return model.generate_content(
                 prompt,
-                request_options=RequestOptions(timeout=90),
+                request_options=RequestOptions(timeout=150),
             )
         except Exception as e:
             err_str = str(e)
