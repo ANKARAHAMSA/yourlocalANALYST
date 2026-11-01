@@ -85,6 +85,7 @@ export default function Home() {
       let buffer = '';
       let currentEvent: string | null = null;
       let finalResultPayload: any = null;
+      let streamError: string | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -107,6 +108,8 @@ export default function Home() {
                 );
               } else if (currentEvent === 'result') {
                 finalResultPayload = data;
+              } else if (currentEvent === 'error') {
+                streamError = data.error || 'The analytics request failed.';
               }
             } catch {
               // ignore partial line parsing
@@ -114,6 +117,9 @@ export default function Home() {
           }
         }
       }
+
+      if (streamError) throw new Error(streamError);
+      if (finalResultPayload?.error) throw new Error(finalResultPayload.error);
 
       if (finalResultPayload) {
         const completedReport: QueryReport = {
@@ -131,6 +137,8 @@ export default function Home() {
         };
 
         setReports((prev) => [...prev, completedReport]);
+      } else {
+        throw new Error('The analytics API finished without returning a result. Please try again.');
       }
     } catch (err: any) {
       const failedReport: QueryReport = {
