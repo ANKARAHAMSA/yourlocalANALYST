@@ -11,6 +11,7 @@ from typing import TypedDict, Optional, Any
 from langgraph.graph import StateGraph, END
 
 import google.generativeai as genai
+from google.generativeai.types import RequestOptions
 
 from agent.prompts import PLANNER_SYSTEM_PROMPT, REFLECTOR_SYSTEM_PROMPT, INSIGHT_SYSTEM_PROMPT
 from agent.sandbox import execute_sql, execute_python, SecurityError
@@ -72,7 +73,10 @@ def _generate_with_retry(model, prompt: str, on_step=None, max_attempts: int = 4
     """
     for attempt in range(1, max_attempts + 1):
         try:
-            return model.generate_content(prompt)
+            return model.generate_content(
+                prompt,
+                request_options=RequestOptions(timeout=90),
+            )
         except Exception as e:
             err_str = str(e)
             is_rate_limit = "429" in err_str or "quota" in err_str.lower() or "resource" in err_str.lower()

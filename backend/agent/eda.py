@@ -3,8 +3,10 @@ Auto-EDA engine: generates instant schema profiles, statistics,
 executive summaries, and suggested questions for uploaded datasets.
 """
 import json
+import asyncio
 import duckdb
 import google.generativeai as genai
+from google.generativeai.types import RequestOptions
 
 from agent.prompts import EDA_SYSTEM_PROMPT
 
@@ -73,7 +75,13 @@ async def run_eda(
     )
 
     try:
-        response = gemini_model.generate_content(prompt)
+        # The Gemini client is synchronous. Keep its network wait off the
+        # FastAPI event loop so health checks and other requests stay responsive.
+        response = await asyncio.to_thread(
+            gemini_model.generate_content,
+            prompt,
+            request_options=RequestOptions(timeout=15),
+        )
         raw = response.text.strip()
         # Strip markdown fences if present
         if raw.startswith("```"):

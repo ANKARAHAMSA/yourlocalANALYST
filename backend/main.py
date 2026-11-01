@@ -80,4 +80,4 @@ app.include_router(export_router, prefix="/api", tags=["Export"])
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model": "gemini-2.0-flash"}
+    return {"status": "ok", "model": "gemini-flash-latest"}
