@@ -19,6 +19,7 @@ import FileUploader from './components/FileUploader';
 import ReportFeed from './components/ChatPanel';
 import ExportBar from './components/ExportBar';
 import OnboardingTour from './components/OnboardingTour';
+import { apiError, apiUrl } from './api-config';
 
 export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -31,8 +32,6 @@ export default function Home() {
 
   const reportsEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   // Automatically trigger onboarding tutorial on first visit
   useEffect(() => {
@@ -71,7 +70,7 @@ export default function Home() {
     setRunningReport(newReport);
 
     try {
-      const response = await fetch(`${API_URL}/api/analyze`, {
+      const response = await fetch(apiUrl('analyze'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId, question: textToRun }),
@@ -139,7 +138,7 @@ export default function Home() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         query: textToRun,
         status: 'error',
-        error: err.message || 'Execution error encountered.',
+        error: apiError(err).message || 'Execution error encountered.',
       };
       setReports((prev) => [...prev, failedReport]);
     } finally {
@@ -318,7 +317,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-center justify-between mt-2.5 px-2 text-[10px] font-mono text-slate-400">
-              <span>EMBEDDED COLUMNAR DATABASE · ZERO DATA TRANSFER</span>
+              <span>ANALYSIS API + GEMINI · SESSION DATA IS NOT PERMANENTLY STORED</span>
               <span>PRESS ENTER ↵ TO RUN</span>
             </div>
           </div>

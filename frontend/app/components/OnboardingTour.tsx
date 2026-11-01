@@ -31,7 +31,7 @@ const TOUR_STEPS: TourStep[] = [
     title: 'Import Business Datasets',
     badge: 'Step 1 of 5',
     description:
-      'Drag and drop one or multiple CSV files here (e.g. sales, customers, transactions). Files are loaded directly into an isolated in-memory database with zero cloud disk retention.',
+      'CSV files are sent to the configured analysis API and held in an isolated in-memory database for the session. Automatic profiling sends up to five sample rows per table and summary statistics to the configured Gemini model. Datasets are not saved as permanent files.',
     position: 'right',
     icon: FileSpreadsheet,
   },

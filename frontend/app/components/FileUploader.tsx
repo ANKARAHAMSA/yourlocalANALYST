@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { Database, UploadCloud, FileSpreadsheet, ChevronRight, CheckCircle2, Columns } from 'lucide-react';
 import type { UploadResult } from '../types';
+import { apiError, apiUrl } from '../api-config';
 
 interface FileUploaderProps {
   onUploadSuccess: (data: UploadResult) => void;
@@ -15,8 +16,6 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
   const [uploadedData, setUploadedData] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
   const handleUpload = useCallback(async (files: FileList | File[]) => {
     if (!files.length) return;
     setIsUploading(true);
@@ -26,7 +25,7 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
     Array.from(files).forEach((f) => formData.append('files', f));
 
     try {
-      const res = await fetch(`${API_URL}/api/upload`, {
+      const res = await fetch(apiUrl('upload'), {
         method: 'POST',
         body: formData,
       });
@@ -38,11 +37,11 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
       setUploadedData(data);
       onUploadSuccess(data);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Upload failed');
+      setError(apiError(e).message);
     } finally {
       setIsUploading(false);
     }
-  }, [API_URL, onUploadSuccess]);
+  }, [onUploadSuccess]);
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -65,7 +64,7 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
               </h2>
               <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                IN-MEMORY SESSION · ZERO RETENTION
+                API SESSION · NOT PERMANENTLY STORED
               </p>
             </div>
           </div>
@@ -101,7 +100,7 @@ export default function FileUploader({ onUploadSuccess, onSelectQuestion }: File
                 MULTI-FILE RELATIONAL
               </span>
               <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                LOCAL RAM ONLY
+                TEMPORARY SERVER SESSION
               </span>
             </div>
           </div>
