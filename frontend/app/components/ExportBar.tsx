@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FileText, BookOpen, Download, CheckCircle, Loader2 } from 'lucide-react';
 import type { QueryReport } from '../types';
+import { apiError, apiUrl } from '../api-config';
 
 interface ExportBarProps {
   sessionId: string;
@@ -11,8 +12,6 @@ interface ExportBarProps {
 
 export default function ExportBar({ sessionId, reports }: ExportBarProps) {
   const [downloading, setDownloading] = useState<'notebook' | 'pdf' | null>(null);
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   if (!reports.some((r) => r.status === 'completed')) return null;
 
@@ -30,7 +29,7 @@ export default function ExportBar({ sessionId, reports }: ExportBarProps) {
         },
       ]);
 
-      const res = await fetch(`${API_URL}/api/export/${format}`, {
+      const res = await fetch(apiUrl(`export/${format}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId, history }),
@@ -51,7 +50,7 @@ export default function ExportBar({ sessionId, reports }: ExportBarProps) {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(err);
+      console.error(apiError(err));
     } finally {
       setDownloading(null);
     }

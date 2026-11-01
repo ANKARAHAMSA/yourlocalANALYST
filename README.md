@@ -170,6 +170,31 @@ npm run dev
 ```
 Open **`http://localhost:3000`** in your browser!
 
+### Production deployment configuration
+
+The frontend and FastAPI backend must both be deployed. In the Vercel project, set
+`NEXT_PUBLIC_API_URL` to the public base URL of the FastAPI backend (for example,
+`https://api.example.com`, without a trailing slash) **before building and deploying**.
+Next.js embeds `NEXT_PUBLIC_` values into the browser bundle at build time, so changing
+the variable requires a new deployment.
+
+On the backend host, set `GEMINI_API_KEY` and `FRONTEND_ORIGINS`. The latter is a
+comma-separated list of allowed site origins, such as
+`https://yourlocalanalyst.vercel.app`; include any Vercel preview origins that should
+be allowed. The health endpoint is available at `/health` for checking the backend.
+
+This repository includes a Render Blueprint at `render.yaml` for creating a free
+backend service. Create the Blueprint in Render and enter `GEMINI_API_KEY` in the
+Render dashboard. After Render deploys the service, set its URL as
+`NEXT_PUBLIC_API_URL` in Vercel and redeploy the frontend. The free Render plan is
+for demos: it can sleep after 15 minutes without traffic, may take about a minute to
+wake, and loses in-memory sessions when it restarts. Render notes that excess outbound
+bandwidth can be billable if a payment method is on file.
+
+Uploaded CSVs are sent to the configured backend. Automatic profiling sends up to
+five sample rows per table and summary statistics to Gemini. The backend keeps query
+tables in process memory and does not retain datasets as permanent files.
+
 ---
 
 ## 📁 Repository Structure

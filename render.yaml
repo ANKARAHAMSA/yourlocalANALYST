@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: yourlocalanalyst-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_ORIGINS
+        value: https://yourlocalanalyst.vercel.app
